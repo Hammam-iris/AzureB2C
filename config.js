@@ -16,7 +16,7 @@ exports.creds = {
   responseMode: 'form_post', 
 
   // Required, the reply URL registered in AAD for your app
-  redirectUrl: 'http://localhost:3000/auth/openid/return', 
+  redirectUrl: 'https://activedirb2c.azurewebsites.net/auth/openid/return', 
 
   // Required if we use http for redirectUrl
   allowHttpForRedirectUrl: true,
@@ -74,7 +74,7 @@ exports.creds = {
 exports.destroySessionUrl = 
   'https://login.microsoftonline.com/irisadvB2C.onmicrosoft.com/oauth2/v2.0/logout' +
   '?p=B2C_1_signin' +
-  '&post_logout_redirect_uri=http://localhost:3000';
+  '&post_logout_redirect_uri=https://activedirb2c.azurewebsites.net/';
 
 // If you want to use the mongoDB session store for session middleware; otherwise we will use the default
 // session store provided by express-session.
