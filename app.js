@@ -42,8 +42,14 @@ var formidable = require('formidable');
 var helpers = require('./helpers.js');
 var args = require('yargs').argv;
 
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').load();
+}
+
+
+
 // Global request options, set the retryPolicy
-var blobClient = storage.createBlobService();
+var blobClient = azure.createBlobService();
 var containerName = 'images';
 
 // set up database for express session
