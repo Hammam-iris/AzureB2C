@@ -36,6 +36,15 @@ var passport = require('passport');
 var util = require('util');
 var bunyan = require('bunyan');
 var config = require('./config');
+var path = require('path');
+var azure = require('azure-storage');
+var formidable = require('formidable');
+var helpers = require('./helpers.js');
+var args = require('yargs').argv;
+
+// Global request options, set the retryPolicy
+var blobClient = storage.createBlobService();
+var containerName = 'images';
 
 // set up database for express session
 var MongoStore = require('connect-mongo')(expressSession);
@@ -149,6 +158,7 @@ var app = express();
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
+app.use(express.static(path.join(__dirname + '/public')));
 app.use(express.logger());
 app.use(methodOverride());
 app.use(cookieParser());
@@ -175,7 +185,7 @@ app.use(bodyParser.urlencoded({ extended : true }));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(app.router);
-app.use(express.static(__dirname + '/../../public'));
+//app.use(express.static(__dirname + '/../../public'));
 
 //-----------------------------------------------------------------------------
 // Set up the route controller
@@ -261,6 +271,55 @@ app.get('/logout', function(req, res){
     res.redirect(config.destroySessionUrl);
   });
 });
+
+// fine uploader
+
+//Routes
+app.get('/Upload',ensureAuthenticated, function (req, res) {
+  res.render('upload.ejs', { title: 'Upload File' });
+});
+app.get('/signature',ensureAuthenticated, function (req, res) {
+    var url = require("url");
+	var parsedUrl = url.parse(req.url, true); // true to get query as object
+    var queryAsObject = parsedUrl.query;
+    //var data = JSON.stringify(queryAsObject);
+	//console.log(data);
+	var startDate = new Date();
+    startDate.setMinutes(startDate.getMinutes() - 5);
+    var expiryDate = new Date(startDate);
+    expiryDate.setMinutes(startDate.getMinutes() + 60);
+	var sharedAccessPolicy = {
+        AccessPolicy: {
+            Permissions: 'rwdl',
+            Start: startDate,
+            Expiry: expiryDate
+        }
+    };  
+var sasToken = blobClient.generateSharedAccessSignature(containerName,queryAsObject.qqtimestamp, sharedAccessPolicy);
+uri= blobClient.getUrl(containerName, queryAsObject.qqtimestamp,sasToken, true);
+res.send(uri);
+});
+
+app.post('/successupload', function (req, res) {
+  res.send('ya rab dy tegy bs');
+});
+
+blobClient.createContainerIfNotExists(containerName, function (error) {
+  if (error) {
+    console.log(error);
+  } else { 
+    setPermissions();
+  }
+});
+
+function setPermissions() {
+  var options = { publicAccessLevel: azure.BlobUtilities.BlobContainerPublicAccessType.BLOB };
+  blobClient.setContainerAcl(containerName, null, options, function (error) {
+    if (error) {
+      console.log(error);
+    } 
+  });
+}
 
 app.listen(8080);
 
