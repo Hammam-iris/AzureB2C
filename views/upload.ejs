@@ -82,12 +82,11 @@
     <title>Fine Uploader Gallery UI</title>
     <div id="uploader"></div>
     <script>
-	    var blobname = "testblob";
         // Some options to pass to the uploader are discussed on the next page
         var uploader = new qq.azure.FineUploader({
             element: document.getElementById('uploader'),
             request: {
-                endpoint: 'https://mmagdy.blob.core.windows.net/newnew'//'https://{ YOUR_STORAGE_ACCOUNT_NAME }.blob.core.windows.net/{ YOUR_CONTAINER_NAME }'
+                endpoint: 'https://mmagdy.blob.core.windows.net/imagesb2c'//'https://{ YOUR_STORAGE_ACCOUNT_NAME }.blob.core.windows.net/{ YOUR_CONTAINER_NAME }'
             },
             signature: {
                 endpoint: '/signature'

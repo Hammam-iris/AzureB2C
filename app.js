@@ -50,7 +50,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Global request options, set the retryPolicy
 var blobClient = azure.createBlobService();
-var containerName = 'images';
+var containerName = 'imagesb2c';
 
 // set up database for express session
 var MongoStore = require('connect-mongo')(expressSession);
@@ -281,15 +281,59 @@ app.get('/logout', function(req, res){
 // fine uploader
 
 //Routes
-app.get('/Upload',ensureAuthenticated, function (req, res) {
+app.get('/Upload', function (req, res) {
   res.render('upload.ejs', { title: 'Upload File' });
 });
-app.get('/signature',ensureAuthenticated, function (req, res) {
-    var url = require("url");
-	var parsedUrl = url.parse(req.url, true); // true to get query as object
+
+app.get('/Display', function (req, res) {
+  blobClient.listBlobsSegmented(containerName, null, function (error, blobs, result) {
+      var blobs = blobs.entries;
+	  //console.log(blobs);
+	  var filenames = new Array();
+	  for(var i=0 ; i<blobs.length ; i++){
+		blobClient.getBlobProperties(containerName, blobs[i].name, function(err, result, response) {
+    if (err) {
+         helpers.renderError(result);
+    } else if (!response.isSuccessful) {
+         helpers.renderError(result);
+    } else {
+		filenames.push(result.metadata.qqfilename);
+    }
+    });	  	
+	  }
+	  console.log(blobs);
+      res.render('display.ejs', { title: 'List of Blobs', serverBlobs: blobs});
+  });
+});
+
+app.get('/Download/:id', function (req, res) {
+  blobClient.getBlobProperties(containerName, req.params.id, function (err, blobInfo) {
+    if (err === null) {
+	console.log(blobInfo);
+      res.header('content-type', blobInfo.contentSettings.contentType);
+      res.header('content-disposition', 'attachment; filename=' + blobInfo.metadata.qqfilename);
+      blobClient.getBlobToStream(containerName, req.params.id, res, function () { });
+    } else {
+      helpers.renderError(res);
+    }
+  });
+});
+
+app.post('/Delete/:id', function (req, res) {
+  blobClient.deleteBlob(containerName, req.params.id, function (error) {
+    if (error != null) {
+      helpers.renderError(res);
+    } else {
+      res.redirect('/Display');
+    }
+  });
+});
+
+app.get('/signature', function (req, res) {
+    
+    var url1 = require("url");
+	var parsedUrl = url1.parse(req.url, true); // true to get query as object
     var queryAsObject = parsedUrl.query;
-    //var data = JSON.stringify(queryAsObject);
-	//console.log(data);
 	var startDate = new Date();
     startDate.setMinutes(startDate.getMinutes() - 5);
     var expiryDate = new Date(startDate);
@@ -300,14 +344,38 @@ app.get('/signature',ensureAuthenticated, function (req, res) {
             Start: startDate,
             Expiry: expiryDate
         }
-    };  
-var sasToken = blobClient.generateSharedAccessSignature(containerName,queryAsObject.qqtimestamp, sharedAccessPolicy);
-uri= blobClient.getUrl(containerName, queryAsObject.qqtimestamp,sasToken, true);
+    };
+	var blobnamearr = (queryAsObject.bloburi).split("/imagesb2c/");
+	var blobname = (blobnamearr[1]).split("/imagesb2c/");
+	console.log(blobname[0]);  
+var sasToken = blobClient.generateSharedAccessSignature(containerName, "folderww/"+blobname[0], sharedAccessPolicy);
+var uri= blobClient.getUrl(containerName, "folderww/"+blobname[0],sasToken, true);
 res.send(uri);
 });
 
 app.post('/successupload', function (req, res) {
-  res.send('ya rab dy tegy bs');
+// Define schema
+var Schema = mongoose.Schema;
+
+var SomeModelSchema = new Schema({
+    blob: String,
+	uuid: String,
+	container: String,
+	name : String
+});
+
+// Compile model from schema
+var SomeModel = mongoose.model('SomeModel', SomeModelSchema );
+// Create an instance of model SomeModel
+var awesome_instance = new SomeModel({ blob: req.body.blob , uuid : req.body.uuid , container : req.body.container , name : req.body.name});
+
+// Save the new model instance, passing a callback
+awesome_instance.save(function (err) {
+  if (err) return handleError(err);
+  // saved!
+  res.send("uploded and saved");
+});
+  
 });
 
 blobClient.createContainerIfNotExists(containerName, function (error) {
